@@ -2,163 +2,259 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>منصة البث المباشر الموحدة للهاتف</title>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عداد الحضور الذكي المستمر</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #0d0e12;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
             color: #ffffff;
+            margin: 0;
+            padding: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: space-between;
-            min-height: 100vh;
-            padding: 20px;
         }
-        .header {
+        h1 {
+            color: #ffca28;
+            margin-bottom: 5px;
+            font-size: 24px;
+        }
+        #status {
+            margin-bottom: 15px;
+            color: #ff9100;
+            font-size: 14px;
+            background: #222;
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: 1px solid #333;
             text-align: center;
-            margin-top: 10px;
+            max-width: 600px;
         }
-        h2 { font-size: 1.4rem; color: #00ffcc; }
-        p { font-size: 0.85rem; color: #777; margin-top: 5px; }
-
-        .video-wrapper {
-            width: 100%;
-            max-width: 400px;
-            aspect-ratio: 9 / 16; /* أبعاد طولية متناسبة مع شاشات الهواتف */
-            background: #000;
-            border-radius: 16px;
-            overflow: hidden;
-            border: 2px solid #1f2330;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+        .container {
             position: relative;
+            width: 640px;
+            height: 480px;
+            background: #1e1e1e;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            border: 2px solid #333;
         }
-        video {
+        video, canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            object-fit: cover;
         }
-        .live-indicator {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: #ff3b30;
-            color: #fff;
-            padding: 4px 10px;
-            border-radius: 5px;
-            font-size: 12px;
+        #video, #overlay {
+            transform: scaleX(-1);
+        }
+        .stats-panel {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            width: 640px;
+        }
+        .card {
+            flex: 1;
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #333;
+        }
+        .card h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #aaa;
+        }
+        .card p {
+            margin: 0;
+            font-size: 36px;
             font-weight: bold;
-            display: none;
+            color: #00e676;
         }
-        .footer {
-            width: 100%;
-            max-width: 400px;
-            padding-bottom: 15px;
-        }
-        button {
-            width: 100%;
-            background: linear-gradient(135deg, #00ffcc, #00b3ff);
-            color: #000;
+        .btn-reset {
+            margin-top: 20px;
+            background-color: #d32f2f;
+            color: white;
             border: none;
-            padding: 16px;
-            font-size: 18px;
-            font-weight: bold;
-            border-radius: 12px;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
             cursor: pointer;
-            box-shadow: 0 5px 15px rgba(0, 255, 204, 0.3);
-            -webkit-tap-highlight-color: transparent;
+            font-family: inherit;
+            transition: 0.2s;
         }
-        button:disabled {
-            background: #222 !important;
-            color: #555 !important;
-            box-shadow: none;
+        .btn-reset:hover {
+            background-color: #f44336;
+        }
+        @media (max-width: 680px) {
+            .container, .stats-panel {
+                width: 95vw;
+                height: calc(95vw * 0.75);
+            }
+            .stats-panel { height: auto; flex-direction: column; gap: 10px; }
         }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h2>البث الفوري الموحد</h2>
-        <p>قم بالبث مباشرة لليوتيوب والفيسبوك من هافتك</p>
+    <h1>عداد الحضور الحسينى الذكي (حفظ تلقائي)</h1>
+    <div id="status">جاري تشغيل محرك الذكاء الاصطناعي والمزامنة الاسترجاعية...</div>
+
+    <div class="container">
+        <video id="video" autoplay muted playsinline></video>
+        <canvas id="overlay"></canvas>
     </div>
 
-    <div class="video-wrapper">
-        <div class="live-indicator" id="liveBadge">LIVE</div>
-        <video id="cameraPreview" autoplay muted playsinline></video>
+    <div class="stats-panel">
+        <div class="card">
+            <h3>الحضور في الكادر الآن</h3>
+            <p id="current-count">0</p>
+        </div>
+        <div class="card">
+            <h3>إجمالي الحضور المحفوظ</h3>
+            <p id="total-count" style="color: #ffca28;">0</p>
+        </div>
     </div>
 
-    <div class="footer">
-        <button id="streamBtn">ابدأ البث المباشر الآن</button>
-    </div>
+    <button class="btn-reset" onclick="resetCounter()">تصفير العداد وبدء مجلس جديد</button>
 
     <script>
-        const videoElement = document.getElementById('cameraPreview');
-        const streamButton = document.getElementById('streamBtn');
-        const liveBadge = document.getElementById('liveBadge');
-        let mediaRecorder;
-        let webSocket;
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('overlay');
+        const statusText = document.getElementById('status');
+        const currentCountEl = document.getElementById('current-count');
+        const totalCountEl = document.getElementById('total-count');
 
-        // إعدادات الكاميرا الطولية المناسبة لرفع شبكات الموبايل
-        const cameraConstraints = {
-            video: {
-                facingMode: "user", // "user" للأمامية (سيلفي) و "environment" للخلفية
-                width: { ideal: 720 },
-                height: { ideal: 1280 }
-            },
-            audio: true
-        };
+        let savedFaceDescriptors = []; 
+        const DISTANCE_THRESHOLD = 0.55; 
 
-        // تشغيل الكاميرا تلقائياً عند فتح الملف
-        navigator.mediaDevices.getUserMedia(cameraConstraints)
-            .then(stream => {
-                videoElement.srcObject = stream;
+        // دالة لاسترجاع الوجوه المحفوظة مسبقاً من ذاكرة المتصفح المحلية عند فتح التطبيق
+        function loadSavedData() {
+            const localData = localStorage.getItem('hussaini_faces');
+            if (localData) {
+                try {
+                    // تحويل النصوص المسترجعة مجدداً إلى مصفوفات رقمية (Float32Array) يفهمها الذكاء الاصطناعي
+                    const rawArray = JSON.parse(localData);
+                    savedFaceDescriptors = rawArray.map(item => new Float32Array(item));
+                    totalCountEl.innerText = savedFaceDescriptors.length;
+                    console.log(`تم استعادة ${savedFaceDescriptors.length} وجه من الذاكرة المحلية.`);
+                } catch (e) {
+                    console.error("خطأ في قراءة البيانات المحفوظة:", e);
+                }
+            }
+        }
 
-                streamButton.addEventListener('click', () => {
-                    // هنا نربط المتصفح بالسيرفر الوسيط الذي يقوم بالتحويل لـ RTMP لليوتيوب والفيسبوك
-                    // استبدل لـ IP السيرفر الخاص بك أو رابط ngrok الآمن
-                    const serverStreamUrl = "ws://" + window.location.hostname + ":3000"; 
-                    webSocket = new WebSocket(serverStreamUrl);
+        // دالة لحفظ الوجوه الجديدة فوراً في ذاكرة المتصفح
+        function saveCurrentData() {
+            // تحويل الـ Float32Array إلى مصفوفة عادية ليتمكن المتصفح من حفظها كنص
+            const arrayToSave = savedFaceDescriptors.map(item => Array.from(item));
+            localStorage.setItem('hussaini_faces', JSON.stringify(arrayToSave));
+        }
 
-                    webSocket.onopen = () => {
-                        streamButton.disabled = true;
-                        streamButton.innerText = "🔴 أنت الآن مباشر على المنصات";
-                        streamButton.style.background = "#ff3b30";
-                        streamButton.style.color = "#fff";
-                        liveBadge.style.display = "block";
+        // دالة تصفير العداد ومسح الذاكرة
+        function resetCounter() {
+            if (confirm("هل أنت متأكد من رغبتك في تصفير العداد ومسح البيانات المحفوظة لبدء مجلس جديد؟")) {
+                savedFaceDescriptors = [];
+                localStorage.removeItem('hussaini_faces');
+                totalCountEl.innerText = "0";
+                currentCountEl.innerText = "0";
+                alert("تم تصفير العداد بنجاح.");
+            }
+        }
 
-                        // تسجيل وبث البيانات بصيغة مدعومة للبث الحي وبمعدل نقل مستقر للموبايل
-                        mediaRecorder = new MediaRecorder(stream, {
-                            mimeType: 'video/webm; codecs=vp9',
-                            videoBitsPerSecond: 1500000 // 1.5 Mbps تناسب سرعات رفع الهواتف
-                        });
-
-                        // إرسال داتا الفيديو مجزأة كل 100 ملي ثانية بدون تأخير
-                        mediaRecorder.ondataavailable = (event) => {
-                            if (event.data.size > 0 && webSocket.readyState === WebSocket.OPEN) {
-                                webSocket.send(event.data);
-                            }
-                        };
-                        
-                        mediaRecorder.start(100); 
-                    };
-
-                    webSocket.onclose = () => {
-                        alert("انقطع الاتصال بالسيرفر الوسيط.");
-                        location.reload();
-                    };
-                });
-            })
-            .catch(error => {
-                alert("تنبيه: يجب إعطاء صلاحية الكاميرا والميكروفون للمتصفح أولاً.");
+        // 1. تحميل نماذج الذكاء الاصطناعي بالتوازي لتسريع العملية
+        async function loadModels() {
+            const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+            
+            try {
+                statusText.innerText = "جاري تهيئة الذاكرة الذكية المستقرة...";
+                
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                ]);
+                
+                statusText.innerText = "تمت التهيئة. جاري تحميل البيانات المحفوظة...";
+                loadSavedData();
+                
+                statusText.innerText = "جاري فتح الكاميرا...";
+                startVideo();
+            } catch (error) {
+                statusText.innerHTML = "<span style='color: #ff1744;'>فشل في تهيئة النظام. يرجى التحقق من رفع الملف على استضافة (مثل Netlify) وليس فتحه كملف عادي.</span>";
                 console.error(error);
+            }
+        }
+
+        // 2. تشغيل الكاميرا
+        function startVideo() {
+            navigator.mediaDevices.getUserMedia({ 
+                video: { width: 640, height: 480, facingMode: "user" } 
+            })
+            .then(stream => {
+                video.srcObject = stream;
+                statusText.innerText = "النظام يعمل الآن ومحمي ضد فقدان البيانات.";
+            })
+            .catch(err => {
+                statusText.innerHTML = "<span style='color: #ff1744;'>خطأ: الكاميرا محجوبة. اضغط على علامة القفل بالأعلى في شريط الرابط وفعل خيار السماح بالكاميرا (Allow).</span>";
             });
+        }
+
+        // 3. المعالجة والعد والتحقق من التكرار
+        video.addEventListener('play', () => {
+            setInterval(async () => {
+                if (video.paused || video.ended) return;
+
+                const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 128, scoreThreshold: 0.4 }))
+                    .withFaceLandmarks()
+                    .withFaceDescriptors();
+
+                currentCountEl.innerText = detections.length;
+
+                const displaySizeCurrent = { width: video.offsetWidth, height: video.offsetHeight };
+                faceapi.matchDimensions(canvas, displaySizeCurrent);
+                const resizedDetections = faceapi.resizeResults(detections, displaySizeCurrent);
+                
+                const context = canvas.getContext('2d');
+                context.clearRect(0, 0, canvas.width, canvas.height);
+                faceapi.draw.drawDetections(canvas, resizedDetections);
+
+                let dataChanged = false;
+
+                detections.forEach(detection => {
+                    const currentDescriptor = detection.descriptor;
+                    let isNewFace = true;
+
+                    for (let savedDescriptor of savedFaceDescriptors) {
+                        const distance = faceapi.euclideanDistance(currentDescriptor, savedDescriptor);
+                        if (distance < DISTANCE_THRESHOLD) {
+                            isNewFace = false;
+                            break;
+                        }
+                    }
+
+                    if (isNewFace) {
+                        savedFaceDescriptors.push(currentDescriptor);
+                        dataChanged = true;
+                    }
+                });
+
+                // إذا تم رصد وجوه جديدة، نقوم بتحديث الشاشة وحفظها فوراً في الذاكرة المستمرة
+                if (dataChanged) {
+                    totalCountEl.innerText = savedFaceDescriptors.length;
+                    saveCurrentData();
+                }
+
+            }, 600); 
+        });
+
+        window.onload = loadModels;
     </script>
 </body>
 </html>
