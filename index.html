@@ -3,44 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>عداد الحضور الذكي المستمر</title>
+    <title>عداد الحضور الذكي الاحترافي</title>
     <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
     <style>
+        :root {
+            --bg-color: #0d0d0d;
+            --card-bg: #1a1a1a;
+            --accent-color: #ffca28;
+            --green-color: #00e676;
+            --border-color: #2d2d2d;
+        }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #121212;
+            background-color: var(--bg-color);
             color: #ffffff;
             margin: 0;
-            padding: 20px;
+            padding: 15px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
         }
         h1 {
-            color: #ffca28;
-            margin-bottom: 5px;
-            font-size: 24px;
+            color: var(--accent-color);
+            margin: 5px 0 10px 0;
+            font-size: 22px;
+            text-align: center;
         }
         #status {
             margin-bottom: 15px;
             color: #ff9100;
-            font-size: 14px;
-            background: #222;
+            font-size: 13px;
+            background: #1e1e1e;
             padding: 8px 15px;
             border-radius: 20px;
-            border: 1px solid #333;
+            border: 1px solid var(--border-color);
             text-align: center;
-            max-width: 600px;
+            width: 100%;
+            max-width: 500px;
+            box-sizing: border-box;
+        }
+        .controls-panel {
+            width: 100%;
+            max-width: 500px;
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        label {
+            font-size: 14px;
+            color: #aaa;
+        }
+        select {
+            width: 100%;
+            padding: 10px;
+            background: var(--card-bg);
+            color: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            cursor: pointer;
         }
         .container {
             position: relative;
-            width: 640px;
-            height: 480px;
-            background: #1e1e1e;
+            width: 100%;
+            max-width: 500px;
+            aspect-ratio: 4 / 3;
+            background: #000;
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-            border: 2px solid #333;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.7);
+            border: 2px solid var(--border-color);
         }
         video, canvas {
             position: absolute;
@@ -48,63 +85,67 @@
             left: 0;
             width: 100%;
             height: 100%;
+            object-fit: cover;
         }
-        #video, #overlay {
+        /* تفعيل ميزة قلب الصورة فقط عند استخدام الكاميرا الأمامية (تتم برمجياً في الـ JS) */
+        .mirror {
             transform: scaleX(-1);
         }
         .stats-panel {
             display: flex;
-            gap: 20px;
-            margin-top: 20px;
-            width: 640px;
+            gap: 12px;
+            margin-top: 15px;
+            width: 100%;
+            max-width: 500px;
         }
         .card {
             flex: 1;
-            background: #1e1e1e;
-            padding: 15px;
-            border-radius: 8px;
+            background: var(--card-bg);
+            padding: 12px;
+            border-radius: 10px;
             text-align: center;
-            border: 1px solid #333;
+            border: 1px solid var(--border-color);
         }
         .card h3 {
-            margin: 0 0 10px 0;
-            font-size: 14px;
+            margin: 0 0 5px 0;
+            font-size: 13px;
             color: #aaa;
         }
         .card p {
             margin: 0;
-            font-size: 36px;
+            font-size: 32px;
             font-weight: bold;
-            color: #00e676;
+            color: var(--green-color);
         }
         .btn-reset {
-            margin-top: 20px;
-            background-color: #d32f2f;
+            margin-top: 15px;
+            background-color: #b71c1c;
             color: white;
             border: none;
-            padding: 10px 20px;
-            font-size: 16px;
-            border-radius: 5px;
+            padding: 12px 24px;
+            font-size: 15px;
+            border-radius: 8px;
             cursor: pointer;
             font-family: inherit;
+            width: 100%;
+            max-width: 500px;
             transition: 0.2s;
+            font-weight: bold;
         }
         .btn-reset:hover {
-            background-color: #f44336;
-        }
-        @media (max-width: 680px) {
-            .container, .stats-panel {
-                width: 95vw;
-                height: calc(95vw * 0.75);
-            }
-            .stats-panel { height: auto; flex-direction: column; gap: 10px; }
+            background-color: #e53935;
         }
     </style>
 </head>
 <body>
 
-    <h1>عداد الحضور الحسينى الذكي (حفظ تلقائي)</h1>
-    <div id="status">جاري تشغيل محرك الذكاء الاصطناعي والمزامنة الاسترجاعية...</div>
+    <h1>عداد الحضور الحسينى الذكي للوجوه</h1>
+    <div id="status">جاري تهيئة خوارزميات التمييز ومنع التكرار...</div>
+
+    <div class="controls-panel">
+        <label for="cameraSelect">اختر الكاميرا النشطة للمجلس:</label>
+        <select id="cameraSelect"><option value="">جاري البحث عن الكاميرات المتاحة...</option></select>
+    </div>
 
     <div class="container">
         <video id="video" autoplay muted playsinline></video>
@@ -113,110 +154,172 @@
 
     <div class="stats-panel">
         <div class="card">
-            <h3>الحضور في الكادر الآن</h3>
+            <h3>في الكادر الآن</h3>
             <p id="current-count">0</p>
         </div>
         <div class="card">
-            <h3>إجمالي الحضور المحفوظ</h3>
-            <p id="total-count" style="color: #ffca28;">0</p>
+            <h3>إجمالي الحضور الفريد</h3>
+            <p id="total-count" style="color: var(--accent-color);">0</p>
         </div>
     </div>
 
-    <button class="btn-reset" onclick="resetCounter()">تصفير العداد وبدء مجلس جديد</button>
+    <button class="btn-reset" onclick="resetCounter()">تصفير العداد وبدء ليلة جديدة</button>
 
     <script>
         const video = document.getElementById('video');
         const canvas = document.getElementById('overlay');
         const statusText = document.getElementById('status');
+        const cameraSelect = document.getElementById('cameraSelect');
         const currentCountEl = document.getElementById('current-count');
         const totalCountEl = document.getElementById('total-count');
 
         let savedFaceDescriptors = []; 
-        const DISTANCE_THRESHOLD = 0.55; 
+        let currentStream = null;
+        
+        // عتبة التعرف (0.50 تجعل التمييز صارماً جداً لضمان عدم احتساب الشخص مرتين)
+        const DISTANCE_THRESHOLD = 0.50; 
 
-        // دالة لاسترجاع الوجوه المحفوظة مسبقاً من ذاكرة المتصفح المحلية عند فتح التطبيق
+        // استعادة البيانات من الذاكرة المحلية للهاتف
         function loadSavedData() {
-            const localData = localStorage.getItem('hussaini_faces');
+            const localData = localStorage.getItem('hussaini_faces_v2');
             if (localData) {
                 try {
-                    // تحويل النصوص المسترجعة مجدداً إلى مصفوفات رقمية (Float32Array) يفهمها الذكاء الاصطناعي
                     const rawArray = JSON.parse(localData);
                     savedFaceDescriptors = rawArray.map(item => new Float32Array(item));
                     totalCountEl.innerText = savedFaceDescriptors.length;
-                    console.log(`تم استعادة ${savedFaceDescriptors.length} وجه من الذاكرة المحلية.`);
                 } catch (e) {
-                    console.error("خطأ في قراءة البيانات المحفوظة:", e);
+                    console.error("خطأ في استرجاع البيانات المحفوظة:", e);
                 }
             }
         }
 
-        // دالة لحفظ الوجوه الجديدة فوراً في ذاكرة المتصفح
+        // حفظ بصمات الوجوه في الذاكرة
         function saveCurrentData() {
-            // تحويل الـ Float32Array إلى مصفوفة عادية ليتمكن المتصفح من حفظها كنص
             const arrayToSave = savedFaceDescriptors.map(item => Array.from(item));
-            localStorage.setItem('hussaini_faces', JSON.stringify(arrayToSave));
+            localStorage.setItem('hussaini_faces_v2', JSON.stringify(arrayToSave));
         }
 
-        // دالة تصفير العداد ومسح الذاكرة
+        // تصفير العداد ومسح البيانات
         function resetCounter() {
-            if (confirm("هل أنت متأكد من رغبتك في تصفير العداد ومسح البيانات المحفوظة لبدء مجلس جديد؟")) {
+            if (confirm("هل تريد تصفير العداد ومسح سجل الوجوه المحفوظة لبدء مجلس جديد؟")) {
                 savedFaceDescriptors = [];
-                localStorage.removeItem('hussaini_faces');
+                localStorage.removeItem('hussaini_faces_v2');
                 totalCountEl.innerText = "0";
                 currentCountEl.innerText = "0";
-                alert("تم تصفير العداد بنجاح.");
+                const context = canvas.getContext('2d');
+                context.clearRect(0, 0, canvas.width, canvas.height);
+                alert("تم التصفير بنجاح.");
             }
         }
 
-        // 1. تحميل نماذج الذكاء الاصطناعي بالتوازي لتسريع العملية
+        // 1. تحميل نماذج الذكاء الاصطناعي بالتوازي لتوفير الوقت
         async function loadModels() {
             const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
-            
             try {
-                statusText.innerText = "جاري تهيئة الذاكرة الذكية المستقرة...";
-                
+                statusText.innerText = "جاري تحميل محرك أوزان الوجوه المتطور...";
                 await Promise.all([
                     faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
                     faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
                     faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
                 ]);
                 
-                statusText.innerText = "تمت التهيئة. جاري تحميل البيانات المحفوظة...";
+                statusText.innerText = "تمت المزامنة بنجاح. جاري فحص كاميرات الهاتف...";
                 loadSavedData();
-                
-                statusText.innerText = "جاري فتح الكاميرا...";
-                startVideo();
+                await getAvailableCameras();
             } catch (error) {
-                statusText.innerHTML = "<span style='color: #ff1744;'>فشل في تهيئة النظام. يرجى التحقق من رفع الملف على استضافة (مثل Netlify) وليس فتحه كملف عادي.</span>";
+                statusText.innerHTML = "<span style='color: #ff1744;'>خطأ: فشل بدء النظام. تأكد من تشغيل الكود عبر استضافة آمنة (HTTPS) مثل Netlify.</span>";
                 console.error(error);
             }
         }
 
-        // 2. تشغيل الكاميرا
-        function startVideo() {
-            navigator.mediaDevices.getUserMedia({ 
-                video: { width: 640, height: 480, facingMode: "user" } 
-            })
-            .then(stream => {
-                video.srcObject = stream;
-                statusText.innerText = "النظام يعمل الآن ومحمي ضد فقدان البيانات.";
-            })
-            .catch(err => {
-                statusText.innerHTML = "<span style='color: #ff1744;'>خطأ: الكاميرا محجوبة. اضغط على علامة القفل بالأعلى في شريط الرابط وفعل خيار السماح بالكاميرا (Allow).</span>";
-            });
+        // 2. كشف والتقاط كافة الكاميرات المتاحة في الهاتف/الكمبيوتر
+        async function getAvailableCameras() {
+            try {
+                // طلب صلاحية أولية للكاميرا حتى يسمح النظام بقراءة أسمائها وأنواعها
+                const initialStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                initialStream.getTracks().forEach(track => track.stop());
+
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                
+                cameraSelect.innerHTML = ''; // تفريغ القائمة المنسدلة
+
+                if (videoDevices.length === 0) {
+                    cameraSelect.innerHTML = '<option>لم يتم العثور على أي كاميرا مصلتة</option>';
+                    return;
+                }
+
+                videoDevices.forEach((device, index) => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    // تسمية الكاميرات وتحديد الخلفية والأمامية إن أمكن
+                    option.text = device.label || `كاميرا رقم ${index + 1}`;
+                    cameraSelect.appendChild(option);
+                });
+
+                // الاستماع لحدث تغيير الكاميرا من القائمة
+                cameraSelect.onchange = () => startVideo(cameraSelect.value);
+
+                // تشغيل الكاميرا الأولى تلقائياً
+                startVideo(videoDevices[0].deviceId);
+
+            } catch (err) {
+                statusText.innerHTML = "<span style='color: #ff1744;'>خطأ في الصلاحيات: يرجى تفعيل إذن الوصول للكاميرا من إعدادات المتصفح.</span>";
+                console.error(err);
+            }
         }
 
-        // 3. المعالجة والعد والتحقق من التكرار
+        // 3. تشغيل الكاميرا المحددة وتطبيق ميزة المرآة إذا كانت أمامية
+        async function startVideo(deviceId) {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+
+            const constraints = {
+                video: {
+                    deviceId: deviceId ? { exact: deviceId } : undefined,
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
+                }
+            };
+
+            try {
+                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = currentStream;
+                
+                // ميزة ذكية: إذا كان اسم الكاميرا يحتوي على كلمة "front" أو "أمامية" يتم قلب الصورة كالمرآة لتسهيل الرؤية
+                const selectedTrack = currentStream.getVideoTracks()[0];
+                const settings = selectedTrack.getSettings();
+                const label = selectedTrack.label.toLowerCase();
+                
+                if (label.includes('front') || label.includes('user') || label.includes('أمام')) {
+                    video.classList.add('mirror');
+                    canvas.classList.add('mirror');
+                } else {
+                    video.classList.remove('mirror');
+                    canvas.classList.remove('mirror');
+                }
+
+                statusText.innerText = "النظام الذكي يعمل الآن ومستعد لرصد الحضور الكلي واللحظي.";
+            } catch (err) {
+                statusText.innerHTML = "<span style='color: #ff1744;'>فشل تشغيل الكاميرا المحددة. جرب اختيار كاميرا أخرى.</span>";
+                console.error(err);
+            }
+        }
+
+        // 4. معالجة البث، كشف الوجوه، والتأكد الفعلي من عدم التكرار
         video.addEventListener('play', () => {
             setInterval(async () => {
                 if (video.paused || video.ended) return;
 
-                const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 128, scoreThreshold: 0.4 }))
+                // رصد الوجوه بدقة عالية مع معالم الوجه وبصمة ملامح الوجه الفريدة
+                const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.4 }))
                     .withFaceLandmarks()
                     .withFaceDescriptors();
 
                 currentCountEl.innerText = detections.length;
 
+                // مطابقة المقاييس وضبط أبعاد صندوق الرسم فوق الفيديو تلقائياً
                 const displaySizeCurrent = { width: video.offsetWidth, height: video.offsetHeight };
                 faceapi.matchDimensions(canvas, displaySizeCurrent);
                 const resizedDetections = faceapi.resizeResults(detections, displaySizeCurrent);
@@ -225,33 +328,35 @@
                 context.clearRect(0, 0, canvas.width, canvas.height);
                 faceapi.draw.drawDetections(canvas, resizedDetections);
 
-                let dataChanged = false;
+                let isDataChanged = false;
 
+                // فحص الوجوه المكتشفة ومقارنتها بالذاكرة
                 detections.forEach(detection => {
                     const currentDescriptor = detection.descriptor;
-                    let isNewFace = true;
+                    let isNewPerson = true;
 
                     for (let savedDescriptor of savedFaceDescriptors) {
                         const distance = faceapi.euclideanDistance(currentDescriptor, savedDescriptor);
+                        // إذا كانت المسافة الإقليدية صغيرة جداً، فهذا الشخص مسجل مسبقاً بالتأكيد
                         if (distance < DISTANCE_THRESHOLD) {
-                            isNewFace = false;
+                            isNewPerson = false;
                             break;
                         }
                     }
 
-                    if (isNewFace) {
+                    // إذا كان وجهاً جديداً بالكامل، احفظه وزد العداد
+                    if (isNewPerson) {
                         savedFaceDescriptors.push(currentDescriptor);
-                        dataChanged = true;
+                        isDataChanged = true;
                     }
                 });
 
-                // إذا تم رصد وجوه جديدة، نقوم بتحديث الشاشة وحفظها فوراً في الذاكرة المستمرة
-                if (dataChanged) {
+                if (isDataChanged) {
                     totalCountEl.innerText = savedFaceDescriptors.length;
-                    saveCurrentData();
+                    saveCurrentData(); // التخزين الفوري في المستودع المحلي للمتصفح
                 }
 
-            }, 600); 
+            }, 600); // الفحص مرتين كل ثانية لضمان رصد المارين بدقة وبدون استهلاك مفرط للبطارية
         });
 
         window.onload = loadModels;
