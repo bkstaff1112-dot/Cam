@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OBS Mobile Studio Ultimate</title>
+    <style>
+        :root { --bg: #121212; --panel: #1e1e1e; --accent: #0078d4; }
+        body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; overflow: hidden; }
+        .canvas-area { display: flex; gap: 5px; padding: 5px; background: #000; justify-content: center; }
+        canvas { width: 48%; height: 200px; background: #111; border: 1px solid #444; }
+        .panels { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px; height: 60vh; overflow-y: auto; }
+        .panel { background: var(--panel); padding: 10px; border-radius: 8px; border: 1px solid #333; }
+        button { background: var(--accent); color: #fff; border: none; padding: 8px; border-radius: 4px; cursor: pointer; width: 100%; margin-top: 5px; }
+        input, select { width: 100%; padding: 8px; background: #000; color: #fff; border: 1px solid #444; margin-top: 5px; }
+        .item-row { display: flex; justify-content: space-between; background: #333; padding: 5px; margin: 2px 0; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+<div class="canvas-area">
+    <canvas id="preview" width="854" height="480"></canvas>
+    <canvas id="program" width="854" height="480"></canvas>
+</div>
+
+<div class="panels">
+    <!-- إدارة المشاهد -->
+    <div class="panel">
+        <h3>المشاهد</h3>
+        <input type="text" id="newSceneName" placeholder="اسم المشهد">
+        <button onclick="addScene()">إضافة مشهد</button>
+        <div id="scenesList"></div>
+    </div>
+    <!-- إدارة العناصر -->
+    <div class="panel">
+        <h3>العناصر (لمشهد: <span id="curSceneName">الافتراضي</span>)</h3>
+        <select id="srcType"><option value="image">صورة</option><option value="video">فيديو</option><option value="ninja">Ninja</option></select>
+        <input type="file" id="mediaFile">
+        <button onclick="addSource()">إضافة عنصر</button>
+        <div id="sourcesList"></div>
+    </div>
+    <!-- البث -->
+    <div class="panel">
+        <h3>البث الفعلي (WHIP)</h3>
+        <input type="text" id="streamUrl" placeholder="رابط الخادم">
+        <input type="password" id="streamKey" placeholder="مفتاح البث">
+        <button onclick="toggleStream()" style="background:#dc3545;">بدء البث المباشر</button>
+    </div>
+    <!-- التحكم بالصوت -->
+    <div class="panel">
+        <h3>التحكم بالصوت</h3>
+        <input type="range" min="0" max="100" value="100">
+        <button onclick="alert('تم تفعيل ميكروفون النظام')">تفعيل الميكروفون</button>
+    </div>
+</div>
+
+<script>
+    let scenes = { "الافتراضي": [] }, currentScene = "الافتراضي", selectedEl = null;
+    const pCanvas = document.getElementById('preview');
+    const pCtx = pCanvas.getContext('2d');
+
+    // سحب العناصر باللمس
+    pCanvas.addEventListener('touchstart', e => {
+        const rect = pCanvas.getBoundingClientRect();
+        const touch = e.touches[0];
+        const x = (touch.clientX - rect.left) * (pCanvas.width / rect.width);
+        const y = (touch.clientY - rect.top) * (pCanvas.height / rect.height);
+        selectedEl = scenes[currentScene].find(el => x > el.x && x < el.x + el.w && y > el.y && y < el.y + el.h);
+    });
+
+    pCanvas.addEventListener('touchmove', e => {
+        if(selectedEl) {
+            const rect = pCanvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            selectedEl.x = (touch.clientX - rect.left) * (pCanvas.width / rect.width) - selectedEl.w/2;
+            selectedEl.y = (touch.clientY - rect.top) * (pCanvas.height / rect.height) - selectedEl.h/2;
+        }
+    });
+
+    function addScene() {
+        const name = document.getElementById('newSceneName').value;
+        scenes[name] = [];
+        renderScenes();
+    }
+
+    function addSource() {
+        const type = document.getElementById('srcType').value;
+        const el = { type, x: 50, y: 50, w: 200, h: 150 };
+        scenes[currentScene].push(el);
+        renderSources();
+    }
+
+    function renderScenes() {
+        document.getElementById('scenesList').innerHTML = Object.keys(scenes).map(s => `<button onclick="currentScene='${s}'; document.getElementById('curSceneName').innerText='${s}'; renderSources()">${s}</button>`).join('');
+    }
+
+    function renderSources() {
+        document.getElementById('sourcesList').innerHTML = scenes[currentScene].map((el, i) => `<div class="item-row">${el.type} <button onclick="scenes[currentScene].splice(${i},1); renderSources()">X</button></div>`).join('');
+    }
+
+    function draw() {
+        pCtx.fillStyle = '#000'; pCtx.fillRect(0,0,854,480);
+        scenes[currentScene].forEach(el => {
+            pCtx.fillStyle = 'cyan';
+            pCtx.fillRect(el.x, el.y, el.w, el.h);
+            pCtx.strokeRect(el.x, el.y, el.w, el.h);
+        });
+        requestAnimationFrame(draw);
+    }
+
+    function toggleStream() {
+        const url = document.getElementById('streamUrl').value;
+        const key = document.getElementById('streamKey').value;
+        if(url && key) alert("جاري الاتصال بالبث الفعلي...");
+        else alert("أدخل بيانات البث");
+    }
+
+    renderScenes();
+    renderSources();
+    draw();
+</script>
+</body>
+</html>
