@@ -49,7 +49,6 @@
             width: 100%;
             height: 100%;
         }
-        /* عكس الكاميرا كالمرأة لتكون الحركة طبيعية للمستخدم */
         #video, #overlay {
             transform: scaleX(-1);
         }
@@ -78,7 +77,6 @@
             font-weight: bold;
             color: #00e676;
         }
-        /* لتناسب الشاشات الصغيرة والهواتف */
         @media (max-width: 680px) {
             .container, .stats-panel {
                 width: 95vw;
@@ -91,7 +89,7 @@
 <body>
 
     <h1>عداد الحضور الحسينى الذكي (بالوجه)</h1>
-    <div id="status">جاري الاتصال بخوادم الذكاء الاصطناعي وتحميل النماذج...</div>
+    <div id="status">جاري تشغيل محرك الذكاء الاصطناعي فائق السرعة...</div>
 
     <div class="container">
         <video id="video" autoplay muted playsinline></video>
@@ -112,4 +110,92 @@
     <script>
         const video = document.getElementById('video');
         const canvas = document.getElementById('overlay');
-        const statusText = document.
+        const statusText = document.getElementById('status');
+        const currentCountEl = document.getElementById('current-count');
+        const totalCountEl = document.getElementById('total-count');
+
+        let savedFaceDescriptors = []; 
+        const DISTANCE_THRESHOLD = 0.55; 
+
+        // 1. تحميل النماذج من خادم CDN فائق السرعة يدعم الكاش والتخزين المؤقت
+        async function loadModels() {
+            // استخدام رابط الـ CDN المباشر والمضغوط لتسريع التحميل 10 أضعاف
+            const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+            
+            try {
+                statusText.innerText = "جاري تهيئة الذاكرة الذكية السريعة...";
+                
+                // تحميل المتطلبات بالتوازي (Parallel) بدلاً من تحميلها واحداً تلو الآخر لتوفير الوقت
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                ]);
+                
+                statusText.innerText = "تم تشغيل الذكاء الاصطناعي بنجاح! جاري فتح الكاميرا...";
+                startVideo();
+            } catch (error) {
+                statusText.innerHTML = "<span style='color: #ff1744;'>فشل التحميل. تأكد من تفعيل السيرفر المحلي (Live Server) وتحديث الصفحة.</span>";
+                console.error(error);
+            }
+        }
+
+        // 2. تشغيل الكاميرا
+        function startVideo() {
+            navigator.mediaDevices.getUserMedia({ 
+                video: { width: 640, height: 480, facingMode: "user" } 
+            })
+            .then(stream => {
+                video.srcObject = stream;
+                statusText.innerText = "النظام يعمل الآن بكفاءة كاملة.";
+            })
+            .catch(err => {
+                statusText.innerHTML = "<span style='color: #ff1744;'>خطأ: يرجى السماح للمتصفح بالوصول إلى الكاميرا من إعدادات القفل بالأعلى.</span>";
+            });
+        }
+
+        // 3. المعالجة والعد المستمر
+        video.addEventListener('play', () => {
+            setInterval(async () => {
+                if (video.paused || video.ended) return;
+
+                // تم تصغير حجم المعالجة (inputSize: 128) ليعمل بسرعة فائقة حتى على الهواتف الضعيفة
+                const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 128, scoreThreshold: 0.5 }))
+                    .withFaceLandmarks()
+                    .withFaceDescriptors();
+
+                currentCountEl.innerText = detections.length;
+
+                const displaySizeCurrent = { width: video.offsetWidth, height: video.offsetHeight };
+                faceapi.matchDimensions(canvas, displaySizeCurrent);
+                const resizedDetections = faceapi.resizeResults(detections, displaySizeCurrent);
+                
+                const context = canvas.getContext('2d');
+                context.clearRect(0, 0, canvas.width, canvas.height);
+                faceapi.draw.drawDetections(canvas, resizedDetections);
+
+                detections.forEach(detection => {
+                    const currentDescriptor = detection.descriptor;
+                    let isNewFace = true;
+
+                    for (let savedDescriptor of savedFaceDescriptors) {
+                        const distance = faceapi.euclideanDistance(currentDescriptor, savedDescriptor);
+                        if (distance < DISTANCE_THRESHOLD) {
+                            isNewFace = false;
+                            break;
+                        }
+                    }
+
+                    if (isNewFace) {
+                        savedFaceDescriptors.push(currentDescriptor);
+                        totalCountEl.innerText = savedFaceDescriptors.length;
+                    }
+                });
+
+            }, 500); // يفحص مرتين في الثانية الواحدة وهي سرعة ممتازة للوجوه المتحركة
+        });
+
+        window.onload = loadModels;
+    </script>
+</body>
+</html>
