@@ -18,7 +18,19 @@
         }
         h1 {
             color: #ffca28;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
+            font-size: 24px;
+        }
+        #status {
+            margin-bottom: 15px;
+            color: #ff9100;
+            font-size: 14px;
+            background: #222;
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: 1px solid #333;
+            text-align: center;
+            max-width: 600px;
         }
         .container {
             position: relative;
@@ -28,6 +40,7 @@
             border-radius: 12px;
             overflow: hidden;
             box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            border: 2px solid #333;
         }
         video, canvas {
             position: absolute;
@@ -35,6 +48,10 @@
             left: 0;
             width: 100%;
             height: 100%;
+        }
+        /* عكس الكاميرا كالمرأة لتكون الحركة طبيعية للمستخدم */
+        #video, #overlay {
+            transform: scaleX(-1);
         }
         .stats-panel {
             display: flex;
@@ -57,21 +74,24 @@
         }
         .card p {
             margin: 0;
-            font-size: 32px;
+            font-size: 36px;
             font-weight: bold;
             color: #00e676;
         }
-        #status {
-            margin-top: 10px;
-            color: #ff9100;
-            font-size: 14px;
+        /* لتناسب الشاشات الصغيرة والهواتف */
+        @media (max-width: 680px) {
+            .container, .stats-panel {
+                width: 95vw;
+                height: calc(95vw * 0.75);
+            }
+            .stats-panel { height: auto; flex-direction: column; gap: 10px; }
         }
     </style>
 </head>
 <body>
 
-    <h1>عداد الحضور الحسينى الذكي</h1>
-    <div id="status">جاري تحميل نماذج الذكاء الاصطناعي... برجاء الانتظار</div>
+    <h1>عداد الحضور الحسينى الذكي (بالوجه)</h1>
+    <div id="status">جاري الاتصال بخوادم الذكاء الاصطناعي وتحميل النماذج...</div>
 
     <div class="container">
         <video id="video" autoplay muted playsinline></video>
@@ -80,11 +100,11 @@
 
     <div class="stats-panel">
         <div class="card">
-            <h3>الحضور الحالي (أمام الكاميرا)</h3>
+            <h3>الحضور أمام الكاميرا الآن</h3>
             <p id="current-count">0</p>
         </div>
         <div class="card">
-            <h3>إجمالي الحضور الفريد (بدون تكرار)</h3>
+            <h3>إجمالي الحضور (بدون تكرار)</h3>
             <p id="total-count" style="color: #ffca28;">0</p>
         </div>
     </div>
@@ -92,91 +112,4 @@
     <script>
         const video = document.getElementById('video');
         const canvas = document.getElementById('overlay');
-        const statusText = document.getElementById('status');
-        const currentCountEl = document.getElementById('current-count');
-        const totalCountEl = document.getElementById('total-count');
-
-        // مصفوفة لتخزين "بصمات الوجوه" الفريدة التي تم رصدها سابقاً
-        let savedFaceDescriptors = []; 
-        // نسبة التشابه (كلما قل الرقم زادت الدقة، 0.6 هو المعيار الافتراضي)
-        const DISTANCE_THRESHOLD = 0.55; 
-
-        // 1. تحميل نماذج الذكاء الاصطناعي من سيرفر خارجي سريعا
-        async function loadModels() {
-            const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
-            await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-            await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
-            await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
-            
-            statusText.innerText = "تم تحميل النماذج بنجاح. جاري تشغيل الكاميرا...";
-            startVideo();
-        }
-
-        // 2. تشغيل كاميرا الهاتف أو الكمبيوتر
-        function startVideo() {
-            navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } })
-                .then(stream => {
-                    video.srcObject = stream;
-                    statusText.innerText = "النظام يعمل الآن تلقائياً.";
-                })
-                .catch(err => {
-                    statusText.innerText = "خطأ: لم نتمكن من الوصول للكاميرا. تأكد من إعطاء الصلاحية.";
-                    console.error(err);
-                });
-        }
-
-        // 3. معالجة الفيديو والتعرف على الوجوه وعدها
-        video.addEventListener('play', () => {
-            const displaySize = { width: video.videoWidth, height: video.videoHeight };
-            faceapi.matchDimensions(canvas, displaySize);
-
-            // تشغيل حلقة تكرارية كل 600 ميلي ثانية لتحليل الإطارات (حفاظاً على المعالج)
-            setInterval(async () => {
-                // رصد الوجوه واستخراج معالمها وبصماتها المعمارية
-                const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
-                    .withFaceLandmarks()
-                    .withFaceDescriptors();
-
-                // تحديث عدد الأشخاص الظاهرين أمام الكاميرا حالياً
-                currentCountEl.innerText = detections.length;
-
-                // إعادة تحجيم النتائج لتتطابق مع أبعاد الكانفاس
-                const resizedDetections = faceapi.resizeResults(detections, displaySize);
-                
-                // مسح الكانفاس القديم ورسم المربعات الجديدة
-                const context = canvas.getContext('2d');
-                context.clearRect(0, 0, canvas.width, canvas.height);
-                faceapi.draw.drawDetections(canvas, resizedDetections);
-
-                // فحص كل وجه تم رصده في هذا الإطار لمنع التكرار
-                detections.forEach(detection => {
-                    const currentDescriptor = detection.descriptor;
-                    let isNewFace = true;
-
-                    // مقارنة الوجه الحالي بجميع الوجوه المخزنة مسبقاً
-                    for (let savedDescriptor of savedFaceDescriptors) {
-                        // حساب المسافة الإقليدية بين ملامح الوجهين
-                        const distance = faceapi.euclideanDistance(currentDescriptor, savedDescriptor);
-                        
-                        // إذا كانت المسافة صغيرة جداً، فهذا يعني أنه نفس الشخص
-                        if (distance < DISTANCE_THRESHOLD) {
-                            isNewFace = false;
-                            break;
-                        }
-                    }
-
-                    // إذا كان وجهاً جديداً تماماً، نقوم بحفظه وزيادة العداد الإجمالي
-                    if (isNewFace) {
-                        savedFaceDescriptors.push(currentDescriptor);
-                        totalCountEl.innerText = savedFaceDescriptors.length;
-                    }
-                });
-
-            }, 600); 
-        });
-
-        // بدء تشغيل التطبيق
-        loadModels();
-    </script>
-</body>
-</html>
+        const statusText = document.
